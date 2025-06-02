@@ -1,0 +1,7 @@
+[dotconfig]
+source = "dotconfig"
+dest = "~/.config"
+
+[fakefile]
+source = "fakefile"
+dest = "~"
