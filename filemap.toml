@@ -1,7 +1,7 @@
-[dotconfig]
-source = "dotconfig"
-dest = "~/.config"
-
 [fakefile]
 source = "fakefile"
-dest = "~"
+dest = "/home/angus/"
+
+[dotconfig]
+source = "dotconfig"
+dest = "/home/angus/.config/"
