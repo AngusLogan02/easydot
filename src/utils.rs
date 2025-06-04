@@ -7,8 +7,26 @@ use toml::Value;
 use crate::Mapping;
 
 pub fn read_filemap(mapping_filename: &str) -> Vec<Mapping> {
-    let toml_string = fs::read_to_string(mapping_filename).expect("Unable to read filemap.toml");
-    let toml_data: Value = toml_string.parse::<Value>().expect("Error parsing.");
+    let toml_string = match fs::read_to_string(mapping_filename) {
+        Ok(ts) => ts,
+        Err(e) => {
+            eprintln!(
+                "Error reading \"{}\". Check it exists and is in the same directory as easydot. {}",
+                mapping_filename, e
+            );
+            exit(1);
+        }
+    };
+    let toml_data: Value = match toml_string.parse::<Value>() {
+        Ok(td) => td,
+        Err(e) => {
+            eprintln!(
+                "Error parsing TOML data in \"{}\". Ensure that it is valid and follows the example from the GitHub repo. {}",
+                mapping_filename, e,
+            );
+            exit(1);
+        }
+    };
 
     let mut mappings: Vec<Mapping> = Vec::new();
 
@@ -32,8 +50,7 @@ pub fn read_filemap(mapping_filename: &str) -> Vec<Mapping> {
                     mappings.push(mapping);
                 } else {
                     eprintln!(
-                        "Error: table \"{}\" is missing a source or dest or \
-                        they are of an incorrect type (should be strings).",
+                        "Error: table \"{}\" is missing a source or dest or they are of an incorrect type (should be strings).",
                         table_name
                     );
                     exit(1);
