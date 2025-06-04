@@ -4,7 +4,11 @@ use std::os::unix;
 use std::process::exit;
 use toml::Value;
 
-use crate::Mapping;
+pub struct Mapping {
+    name: String,
+    source: String,
+    dest: String,
+}
 
 pub fn read_filemap(mapping_filename: &str) -> Vec<Mapping> {
     let toml_string = match fs::read_to_string(mapping_filename) {
