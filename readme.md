@@ -31,8 +31,12 @@ dest = "~/.config"
 `./dotfiles/dotconfig/nvim` will link to `~/.config/nvim`, if `~/.config` already exists
 
 # alternatives
-easydot was made mainly as a small project with which to learn rust. As such, it's probably not the most robust and certainly not the most feature complete dotfile manager.
+easydot was made mainly as a small project with which to learn rust. As such, it's probably not the most robust and certainly not the most feature complete dotfile manager
 
 - [chezmoi](https://chezmoi.io/)
 - [dotbot](https://github.com/anishathalye/dotbot)
 - [GNU stow](https://www.gnu.org/software/stow/)
+
+# todo
+- [ ] unlinking dotfiles
+- [ ] better handling of cases where the file already exists at the destination
