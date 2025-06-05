@@ -1,6 +1,7 @@
 use std::env;
 use std::fs;
 use std::os::unix;
+use std::path::Path;
 use std::process::exit;
 use toml::Value;
 
@@ -81,17 +82,45 @@ pub fn create_mapping(mapping: Mapping) {
     println!("----- {} -----", mapping.name);
     println!("{} -> {}", absolute_source, absolute_destination);
 
-    match unix::fs::symlink(absolute_source, absolute_destination) {
-        Ok(_) => println!("success."),
+    let absolute_source_metadata = match fs::metadata(&absolute_source) {
+        Ok(md) => md,
         Err(e) => {
-            eprintln!(
-                "error mapping \"{}\"! please check this table and try again.",
-                mapping.name
-            );
-            eprintln!("{}", e);
+            eprintln!("Error getting metadata for \"{}\": {}", absolute_source, e);
             exit(1);
         }
     };
+    if absolute_source_metadata.file_type().is_dir() && Path::new(&absolute_destination).exists() {
+        if let Ok(source_files) = fs::read_dir(&absolute_source) {
+            for f in source_files {
+                if let Ok(f) = f {
+                    let filename = match f.file_name().into_string() {
+                        Ok(filename) => filename,
+                        Err(_) => {
+                            eprintln!("Error getting filename into string.");
+                            exit(1);
+                        }
+                    };
+                    let absolute_destination = format!("{}/{}", absolute_destination, filename);
+                    //println!("resolved source: {}", f.path().display());
+                    //println!("now linking to: {}", absolute_destination);
+                    symlink(&absolute_source, &absolute_destination);
+                };
+            }
+        }
+    } else {
+        symlink(&absolute_source, &absolute_destination);
+    };
+}
+
+fn symlink(source: &String, dest: &String) -> bool {
+    match unix::fs::symlink(source, dest) {
+        Ok(_) => println!("success."),
+        Err(e) => {
+            eprintln!("{}", e);
+            return false;
+        }
+    };
+    return true;
 }
 
 fn handle_home(path: &String) -> String {
