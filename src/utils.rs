@@ -80,7 +80,6 @@ pub fn create_mapping(mapping: Mapping) {
     let absolute_destination = handle_home(&mapping.dest);
 
     println!("----- {} -----", mapping.name);
-    println!("{} -> {}", absolute_source, absolute_destination);
 
     let absolute_source_metadata = match fs::metadata(&absolute_source) {
         Ok(md) => md,
@@ -91,6 +90,11 @@ pub fn create_mapping(mapping: Mapping) {
     };
     if absolute_source_metadata.file_type().is_dir() && Path::new(&absolute_destination).exists() {
         if let Ok(source_files) = fs::read_dir(&absolute_source) {
+            println!(
+                "{} already exists, linking the files and folders within.",
+                absolute_destination
+            );
+
             for f in source_files {
                 if let Ok(f) = f {
                     let filename = match f.file_name().into_string() {
@@ -101,8 +105,7 @@ pub fn create_mapping(mapping: Mapping) {
                         }
                     };
                     let absolute_destination = format!("{}/{}", absolute_destination, filename);
-                    //println!("resolved source: {}", f.path().display());
-                    //println!("now linking to: {}", absolute_destination);
+                    let absolute_source = format!("{}/{}", absolute_source, filename);
                     symlink(&absolute_source, &absolute_destination);
                 };
             }
@@ -113,10 +116,11 @@ pub fn create_mapping(mapping: Mapping) {
 }
 
 fn symlink(source: &String, dest: &String) -> bool {
+    println!("creating link: {} -> {}", source, dest);
     match unix::fs::symlink(source, dest) {
         Ok(_) => println!("success."),
         Err(e) => {
-            eprintln!("{}", e);
+            eprintln!("ERROR: {}", e);
             return false;
         }
     };

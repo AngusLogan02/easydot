@@ -8,4 +8,7 @@ fn main() {
     for mapping in mappings {
         utils::create_mapping(mapping);
     }
+
+    println!("-----");
+    println!("Done!");
 }
