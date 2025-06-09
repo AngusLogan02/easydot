@@ -67,7 +67,7 @@ pub fn read_filemap(mapping_filename: &str) -> Vec<Mapping> {
     mappings
 }
 
-pub fn create_mapping(mapping: Mapping) {
+pub fn create_mapping(mapping: Mapping, delete: bool) {
     let pwd = match env::current_dir() {
         Ok(pwd) => pwd,
         Err(_) => {
@@ -106,12 +106,40 @@ pub fn create_mapping(mapping: Mapping) {
                     };
                     let absolute_destination = format!("{}/{}", absolute_destination, filename);
                     let absolute_source = format!("{}/{}", absolute_source, filename);
-                    symlink(&absolute_source, &absolute_destination);
+                    if !delete {
+                        symlink(&absolute_source, &absolute_destination);
+                    } else {
+                        let p = Path::new(&absolute_destination);
+                        if p.exists() {
+                            match fs::remove_file(&p) {
+                                Ok(_) => {
+                                    println!("Successfully deleted {}.", &absolute_destination)
+                                }
+                                Err(e) => {
+                                    eprintln!("Error deleting {}: {}", &absolute_destination, e)
+                                }
+                            }
+                        } else {
+                            println!("{} does not exist. Skipping.", &absolute_destination);
+                        }
+                    }
                 };
             }
         }
     } else {
-        symlink(&absolute_source, &absolute_destination);
+        if !delete {
+            symlink(&absolute_source, &absolute_destination);
+        } else {
+            let p = Path::new(&absolute_destination);
+            if p.exists() {
+                match fs::remove_file(&p) {
+                    Ok(_) => println!("Successfully deleted {}.", &absolute_destination),
+                    Err(e) => eprintln!("Error deleting {}: {}", &absolute_destination, e),
+                }
+            } else {
+                println!("{} does not exist. Skipping.", &absolute_destination);
+            }
+        }
     };
 }
 
