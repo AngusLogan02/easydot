@@ -135,6 +135,10 @@ pub fn create_mapping(mapping: Mapping, delete: bool) {
 }
 
 fn symlink(source: &String, dest: &String) -> bool {
+    if Path::new(dest).exists() {
+        println!("Skipping: a file/directory already exists at {}", &dest);
+        return true;
+    }
     println!("creating link: {} -> {}", source, dest);
     match unix::fs::symlink(source, dest) {
         Ok(_) => println!("success."),
