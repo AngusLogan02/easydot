@@ -38,5 +38,5 @@ easydot was made mainly as a small project with which to learn rust. As such, it
 - [GNU stow](https://www.gnu.org/software/stow/)
 
 # todo
-- [ ] unlinking dotfiles
+- [x] unlinking dotfiles
 - [ ] better handling of cases where the file already exists at the destination
