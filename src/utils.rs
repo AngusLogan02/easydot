@@ -1,5 +1,6 @@
 use std::env;
 use std::fs;
+use std::io::{self, Write};
 use std::os::unix;
 use std::path::Path;
 use std::process::exit;
@@ -123,6 +124,7 @@ pub fn create_mapping(mapping: Mapping, delete: bool) {
                         remove(&absolute_destination);
                     }
                 };
+                println!();
             }
         }
     } else {
@@ -131,14 +133,54 @@ pub fn create_mapping(mapping: Mapping, delete: bool) {
         } else {
             remove(&absolute_destination);
         }
+        println!();
     };
 }
 
 fn symlink(source: &String, dest: &String) -> bool {
     if Path::new(dest).exists() {
-        println!("Skipping: a file/directory already exists at {}", &dest);
-        return true;
+        println!("A file/folder already exists at {}", &dest);
+        println!(
+            "Do you want to create a backup of the already existing file/folder and then create the link?"
+        );
+        let backup;
+        loop {
+            let mut choice = String::new();
+            print!("Create backup? (y/n): ");
+            io::stdout().flush().unwrap();
+            match io::stdin().read_line(&mut choice) {
+                Ok(_) => {
+                    let choice = choice.trim().to_lowercase();
+                    if choice == "y" {
+                        backup = true;
+                        break;
+                    } else if choice == "n" {
+                        backup = false;
+                        break;
+                    } else {
+                        println!("entered {}", choice);
+                        println!("Please enter either 'y' or 'n'.");
+                        continue;
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error: {}", e);
+                    exit(1);
+                }
+            }
+        }
+        if backup {
+            let backup_success = create_backup(&dest);
+            if !backup_success {
+                eprintln!("Error creating backup! Skipping file/folder!");
+                return true;
+            }
+        } else {
+            println!("Ok. Skipping file/folder.");
+            return true;
+        }
     }
+
     println!("creating link: {} -> {}", source, dest);
     match unix::fs::symlink(source, dest) {
         Ok(_) => println!("success."),
@@ -189,4 +231,21 @@ fn handle_home(path: &String) -> String {
 
     let path = path.replace("~", home_dir);
     return path;
+}
+
+fn create_backup(path: &String) -> bool {
+    let mut backup_filename: String = path.clone();
+    backup_filename.push_str(".edbackup");
+
+    let backup_path = Path::new(&backup_filename);
+
+    match fs::rename(path, backup_path) {
+        Ok(_) => println!("Successfully created backup file."),
+        Err(e) => {
+            eprintln!("Error creating backup file: {}", e);
+            return false;
+        }
+    };
+
+    return true;
 }
