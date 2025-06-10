@@ -121,7 +121,7 @@ pub fn create_mapping(mapping: Mapping, delete: bool) {
                     if !delete {
                         symlink(&absolute_source, &absolute_destination);
                     } else {
-                        remove(&absolute_destination);
+                        restore(&absolute_destination);
                     }
                 };
                 println!();
@@ -131,7 +131,7 @@ pub fn create_mapping(mapping: Mapping, delete: bool) {
         if !delete {
             symlink(&absolute_source, &absolute_destination);
         } else {
-            remove(&absolute_destination);
+            restore(&absolute_destination);
         }
         println!();
     };
@@ -192,7 +192,7 @@ fn symlink(source: &String, dest: &String) -> bool {
     return true;
 }
 
-fn remove(target: &String) -> bool {
+fn restore(target: &String) -> bool {
     let p = Path::new(&target);
     if p.exists() {
         match fs::remove_file(&p) {
@@ -204,6 +204,21 @@ fn remove(target: &String) -> bool {
         }
     } else {
         println!("{} does not exist. Skipping.", &p.display());
+    }
+
+    let mut backup_path = p.to_path_buf();
+    let extension: String = match backup_path.extension() {
+        Some(e) => format!("{}.edbackup", e.display()),
+        None => String::from("edbackup"),
+    };
+
+    backup_path.set_extension(extension);
+    if backup_path.exists() {
+        println!("Found backup: {}", backup_path.display());
+        match fs::rename(backup_path, p) {
+            Ok(_) => println!("Successfully restored backup!"),
+            Err(e) => eprintln!("Error restoring backup: {}", e),
+        };
     }
     return true;
 }
