@@ -12,6 +12,7 @@ pub struct Mapping {
 }
 
 pub fn read_filemap(mapping_filename: &str) -> Vec<Mapping> {
+    // define toml_string, if the type returned by read_to_string matches Err, then quit
     let toml_string = match fs::read_to_string(mapping_filename) {
         Ok(ts) => ts,
         Err(e) => {
@@ -22,6 +23,7 @@ pub fn read_filemap(mapping_filename: &str) -> Vec<Mapping> {
             exit(1);
         }
     };
+    // parse the toml string into a nested toml structure, with the generic "Value" at the top
     let toml_data: Value = match toml_string.parse::<Value>() {
         Ok(td) => td,
         Err(e) => {
@@ -47,6 +49,7 @@ pub fn read_filemap(mapping_filename: &str) -> Vec<Mapping> {
                 // if source and dest and both strings, move forward calling
                 // them src and dst
                 if let (Some(Value::String(src)), Some(Value::String(dst))) = (source, dest) {
+                    // src, dest must be cloned as the Mapping type is looking for String
                     let mapping = Mapping {
                         name: table_name,
                         source: src.clone(),
@@ -76,7 +79,9 @@ pub fn create_mapping(mapping: Mapping, delete: bool) {
         }
     };
 
+    // format! is essentially a string builder here.
     let absolute_source = format!("{}/dotfiles/{}", pwd.display(), mapping.source);
+    // resolve a '~' in the destination to get the absolute destination
     let absolute_destination = handle_home(&mapping.dest);
 
     println!("----- {} -----", mapping.name);
@@ -88,8 +93,13 @@ pub fn create_mapping(mapping: Mapping, delete: bool) {
             exit(1);
         }
     };
+
+    // if the source file is a directory and the destination folder already exists
     if absolute_source_metadata.file_type().is_dir() && Path::new(&absolute_destination).exists() {
+        // get a list of files (in the form of an iterator) in the source
         if let Ok(source_files) = fs::read_dir(&absolute_source) {
+            // printout to the user that the destination already exists so we're going
+            // to map the contents of the source as children of that destination
             println!(
                 "{} already exists, linking the files and folders within.",
                 absolute_destination
@@ -106,22 +116,11 @@ pub fn create_mapping(mapping: Mapping, delete: bool) {
                     };
                     let absolute_destination = format!("{}/{}", absolute_destination, filename);
                     let absolute_source = format!("{}/{}", absolute_source, filename);
+                    // if we're not running the -r option, link the file
                     if !delete {
                         symlink(&absolute_source, &absolute_destination);
                     } else {
-                        let p = Path::new(&absolute_destination);
-                        if p.exists() {
-                            match fs::remove_file(&p) {
-                                Ok(_) => {
-                                    println!("Successfully deleted {}.", &absolute_destination)
-                                }
-                                Err(e) => {
-                                    eprintln!("Error deleting {}: {}", &absolute_destination, e)
-                                }
-                            }
-                        } else {
-                            println!("{} does not exist. Skipping.", &absolute_destination);
-                        }
+                        remove(&absolute_destination);
                     }
                 };
             }
@@ -130,15 +129,7 @@ pub fn create_mapping(mapping: Mapping, delete: bool) {
         if !delete {
             symlink(&absolute_source, &absolute_destination);
         } else {
-            let p = Path::new(&absolute_destination);
-            if p.exists() {
-                match fs::remove_file(&p) {
-                    Ok(_) => println!("Successfully deleted {}.", &absolute_destination),
-                    Err(e) => eprintln!("Error deleting {}: {}", &absolute_destination, e),
-                }
-            } else {
-                println!("{} does not exist. Skipping.", &absolute_destination);
-            }
+            remove(&absolute_destination);
         }
     };
 }
@@ -155,7 +146,27 @@ fn symlink(source: &String, dest: &String) -> bool {
     return true;
 }
 
+fn remove(target: &String) -> bool {
+    let p = Path::new(&target);
+    if p.exists() {
+        match fs::remove_file(&p) {
+            Ok(_) => println!("Successfully deleted {}", &p.display()),
+            Err(e) => {
+                eprintln!("Error deleting {}: {}", &p.display(), e);
+                return false;
+            }
+        }
+    } else {
+        println!("{} does not exist. Skipping.", &p.display());
+    }
+    return true;
+}
+
 fn handle_home(path: &String) -> String {
+    if !path.contains('~') {
+        return path.to_string();
+    }
+
     let home_dir = match env::home_dir() {
         Some(h) => h,
         None => {
